@@ -14,6 +14,41 @@ perPage = 100
 client = GraphQLClient('https://api.start.gg/gql/' + apiVersion)
 client.inject_token('Bearer ' + authToken)
 
+sprDict = {
+    1: 0,
+    2: 1,
+    3: 2,
+    4: 3,
+    5: 4,
+    6: 4,
+    7: 5,
+    8: 5,
+    9: 6,
+    10: 6,
+    11: 6,
+    12: 6,
+    13: 7,
+    14: 7,
+    15: 7,
+    16: 7,
+    17: 8,
+    18: 8,
+    19: 8,
+    20: 8,
+    21: 8,
+    22: 8,
+    23: 8,
+    24: 8,
+    25: 9,
+    26: 9,
+    27: 9,
+    28: 9,
+    29: 9,
+    30: 9,
+    31: 9,
+    32: 9
+}
+
 getSeedsResult = client.execute('''
 query PhaseSeeds($phaseId: ID!, $page: Int!, $perPage: Int!) {
   phase(id:$phaseId) {
@@ -76,6 +111,12 @@ query PhaseSeeds($phaseId: ID!, $page: Int!, $perPage: Int!) {
 
 resData = json.loads(getSeedsResult)
 
+def calcSPR(seedNum):
+    if seedNum in sprDict:
+        return sprDict[seedNum]
+    else:
+        return seedNum
+
 if 'errors' in resData:
     print('Error:')
     print(resData['errors'])
@@ -116,12 +157,20 @@ else:
         combinedData[setId]['winner'] = setWinner
         combinedData[setId]['loser'] = setLoser
 
-    for setId, setInfo in combinedData.items():
-        if setInfo['winner']:
-            winnerSeed = setInfo['winner']['seedNum']
-            for slot in setInfo['slots']:
-                if slot['entrantId'] != setInfo['winner']['entrantId']:
-                    loserSeed = slot['seedNum']
-                    if winnerSeed > loserSeed:
-                        print(f"{setInfo['winner']['entrantName']} (Seed {winnerSeed}) {setInfo['winner']['stats']['score']['value']} - {setInfo['loser']['stats']['score']['value']} {setInfo['loser']['entrantName']} (Seed {loserSeed})")
-                        break
+def calcUF(winnerSeed, loserSeed):
+  winnerSpr = calcSPR(winnerSeed)
+  loserSpr = calcSPR(loserSeed)
+
+  UF = winnerSpr - loserSpr
+  return(UF)
+
+for setId, setInfo in combinedData.items():
+  if setInfo['winner']:
+    winnerSeed = setInfo['winner']['seedNum']
+    for slot in setInfo['slots']:
+        if slot['entrantId'] != setInfo['winner']['entrantId']:
+            loserSeed = slot['seedNum']
+            UF = calcUF(winnerSeed, loserSeed)
+            if winnerSeed > loserSeed:
+                print(f"{setInfo['winner']['entrantName']} (Seed {winnerSeed}) {setInfo['winner']['stats']['score']['value']} - {setInfo['loser']['stats']['score']['value']} {setInfo['loser']['entrantName']} (Seed {loserSeed}). Upset Facor: {UF}")
+                break

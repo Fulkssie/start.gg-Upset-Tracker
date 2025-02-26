@@ -1,6 +1,5 @@
 from dotenv import load_dotenv
-from graphqlclient import GraphQLClient
-import json
+import requests
 import os
 
 load_dotenv()
@@ -9,47 +8,23 @@ if not authToken:
     raise ValueError('API_KEY environment variable not set')
 apiVersion = 'alpha'
 
-phaseId = 1886788
+phaseId = 1895715
 perPage = 100
-client = GraphQLClient('https://api.start.gg/gql/' + apiVersion)
-client.inject_token('Bearer ' + authToken)
+url = "https://api.start.gg/gql/{apiVersion}".format(apiVersion=apiVersion)
 
-sprDict = {
-    1: 0,
-    2: 1,
-    3: 2,
-    4: 3,
-    5: 4,
-    6: 4,
-    7: 5,
-    8: 5,
-    9: 6,
-    10: 6,
-    11: 6,
-    12: 6,
-    13: 7,
-    14: 7,
-    15: 7,
-    16: 7,
-    17: 8,
-    18: 8,
-    19: 8,
-    20: 8,
-    21: 8,
-    22: 8,
-    23: 8,
-    24: 8,
-    25: 9,
-    26: 9,
-    27: 9,
-    28: 9,
-    29: 9,
-    30: 9,
-    31: 9,
-    32: 9
+headers = {
+    "Authorization": f"Bearer {authToken}",
+    "Content-Type": "application/json"
 }
 
-getSeedsResult = client.execute('''
+sprDict = {
+  1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 4, 7: 5, 8: 5, 9: 6, 10: 6,
+  11: 6, 12: 6, 13: 7, 14: 7, 15: 7, 16: 7, 17: 8, 18: 8, 19: 8,
+  20: 8, 21: 8, 22: 8, 23: 8, 24: 8, 25: 9, 26: 9, 27: 9, 28: 9,
+  29: 9, 30: 9, 31: 9, 32: 9
+}
+
+query ='''
 query PhaseSeeds($phaseId: ID!, $page: Int!, $perPage: Int!) {
   phase(id:$phaseId) {
     id
@@ -103,13 +78,20 @@ query PhaseSeeds($phaseId: ID!, $page: Int!, $perPage: Int!) {
     }
   }
 }
-''', {
-    "phaseId": phaseId,
-    "page": 1,
-    "perPage": perPage
-})
+'''
 
-resData = json.loads(getSeedsResult)
+variables = {
+  "phaseId": phaseId,
+  "page": 1,
+  "perPage": perPage
+}
+
+response = requests.post(url, headers=headers, json={"query": query, "variables": variables})
+
+if response.status_code == 200:
+  resData = response.json()
+else:
+  print(f"Error {response.status_code}: {response.text}")
 
 def calcSPR(seedNum):
     if seedNum in sprDict:

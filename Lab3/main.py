@@ -26,12 +26,9 @@ sprDict = {
 
 query ='''
 query PhaseSeeds($phaseId: ID!, $page: Int!, $perPage: Int!) {
-  phase(id:$phaseId) {
+  phase(id: $phaseId) {
     id
-    seeds(query: {
-      page: $page
-      perPage: $perPage
-    }) {
+    seeds(query: {page: $page, perPage: $perPage}) {
       pageInfo {
         total
         totalPages
@@ -48,16 +45,13 @@ query PhaseSeeds($phaseId: ID!, $page: Int!, $perPage: Int!) {
         }
       }
     }
-    sets(
-      page: $page
-      perPage: $perPage
-      sortType: STANDARD
-    ) {
+    sets(page: $page, perPage: $perPage, sortType: STANDARD) {
       pageInfo {
         total
       }
       nodes {
         id
+        round
         slots {
           id
           entrant {
@@ -113,8 +107,10 @@ else:
     combinedData = {}
     for set in sets:
         setId = set['id']
+        roundNum = set['round']
         combinedData[setId] = {
             'setId': setId,
+            'round': roundNum,
             'slots': []
         }
         setWinner = None
@@ -139,6 +135,12 @@ else:
         combinedData[setId]['winner'] = setWinner
         combinedData[setId]['loser'] = setLoser
 
+def isWinnersSide(roundNum):
+    if roundNum > 0:
+        return "\U0001F535 W: "
+    else:
+        return "\U0001F534 L: "
+    
 def calcUF(winnerSeed, loserSeed):
   winnerSpr = calcSPR(winnerSeed)
   loserSpr = calcSPR(loserSeed)
@@ -146,13 +148,18 @@ def calcUF(winnerSeed, loserSeed):
   UF = winnerSpr - loserSpr
   return(UF)
 
-for setId, setInfo in combinedData.items():
-  if setInfo['winner']:
-    winnerSeed = setInfo['winner']['seedNum']
-    for slot in setInfo['slots']:
-        if slot['entrantId'] != setInfo['winner']['entrantId']:
-            loserSeed = slot['seedNum']
-            UF = calcUF(winnerSeed, loserSeed)
-            if winnerSeed > loserSeed:
-                print(f"{setInfo['winner']['entrantName']} (Seed {winnerSeed}) {setInfo['winner']['stats']['score']['value']} - {setInfo['loser']['stats']['score']['value']} {setInfo['loser']['entrantName']} (Seed {loserSeed}). Upset Facor: {UF}")
-                break
+def getUpsets():
+  for setId, setInfo in combinedData.items():
+    if setInfo['winner']:
+      winnerSeed = setInfo['winner']['seedNum']
+      for slot in setInfo['slots']:
+          if slot['entrantId'] != setInfo['winner']['entrantId']:
+              loserSeed = slot['seedNum']
+              UF = calcUF(winnerSeed, loserSeed)
+              isWinners = isWinnersSide(setInfo['round'])
+              if winnerSeed > loserSeed:
+                  message = (f"{isWinners}{setInfo['winner']['entrantName']} (Seed {winnerSeed}) {setInfo['winner']['stats']['score']['value']} - {setInfo['loser']['stats']['score']['value']} {setInfo['loser']['entrantName']} (Seed {loserSeed}). Upset Facor: {UF}")
+                  print(message)
+                  break
+
+getUpsets()
